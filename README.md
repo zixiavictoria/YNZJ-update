@@ -3,11 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <title>省级中药备案要求可视化看板</title>
+    <!-- 使用国内稳定 CDN -->
     <script src="https://cdn.staticfile.org/echarts/5.3.2/echarts.min.js"></script>
     <style>
       #china-map {
         width: 100%;
         height: 100vh;
+      }
+      body {
+        margin: 0;
+        position: relative;
       }
       #legend-panel {
         position: absolute;
@@ -17,6 +22,7 @@
         padding: 15px;
         border-radius: 5px;
         box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        z-index: 1000;
       }
     </style>
   </head>
@@ -28,22 +34,28 @@
     </div>
 
     <script>
+      // ========== 地图初始化逻辑 ==========
       function initializeChart() {
-        // 示例数据（省份名称必须与 china.geo.json 中的 "name" 字段完全一致）
+        // 省份数据（名称必须与 china.geo.json 中的 "name" 字段完全一致）
         const provinceData = {
-          "北京": { grade: 1 },    // 注意：此处为 "北京"，而非 "北京市"
+          "北京": { grade: 1 },  // ✅ 正确匹配
           "上海": { grade: 2 },
-          "广东": { grade: 3 }
+          "广东": { grade: 3 },
+          "江苏": { grade: 2 },
+          "浙江": { grade: 1 }
+          // 补充其他省份数据...
         };
 
         const chart = echarts.init(document.getElementById("china-map"));
         
-        // 加载新仓库中的地图文件
+        // 加载 GitHub 上的地图文件
         fetch("https://raw.githubusercontent.com/natee/highcharts-china-geo/master/geojson/china.geo.json")
           .then((response) => response.json())
           .then((mapJson) => {
+            // 注册地图
             echarts.registerMap("china", mapJson);
-            
+
+            // 配置项
             const option = {
               tooltip: {
                 trigger: "item",
@@ -57,28 +69,41 @@
                 min: 1,
                 max: 3,
                 inRange: { color: ['#90c7ff', '#73b3ff', '#2f7ed8'] },
-                text: ["高", "低"],
+                text: ["低", "高"],
                 calculable: true
               },
               series: [{
                 type: "map",
                 map: "china",
-                nameProperty: "name", // 对应 china.geo.json 中的字段
+                nameProperty: "name", // 关键字段：匹配 JSON 中的 "name" 属性
                 data: Object.entries(provinceData).map(([name, data]) => ({
                   name,
                   value: data.grade
                 })),
-                label: { show: true }
+                label: {
+                  show: true,
+                  fontSize: 12,
+                  color: "#333"
+                },
+                emphasis: {
+                  label: { show: true, color: "#000" },
+                  itemStyle: { areaColor: "#ffe08c" }
+                }
               }]
             };
 
             chart.setOption(option);
-            createLegend();
+            createLegend(); // 生成图例
+          })
+          .catch((error) => {
+            console.error("地图加载失败:", error);
           });
 
+        // 窗口自适应
         window.addEventListener("resize", () => chart.resize());
       }
 
+      // ========== 图例生成函数 ==========
       function createLegend() {
         const legendItems = document.getElementById("legend-items");
         const grades = [
@@ -90,15 +115,16 @@
         legendItems.innerHTML = grades
           .map(
             (grade) => `
-              <div style="margin: 5px 0; display: flex; align-items: center">
-                <div style="width: 20px; height: 20px; background: ${grade.color}; margin-right: 8px"></div>
-                <span>${grade.desc}</span>
+              <div style="margin: 8px 0; display: flex; align-items: center">
+                <div style="width: 20px; height: 20px; background: ${grade.color}; margin-right: 10px; border-radius: 3px"></div>
+                <span style="font-size: 14px">${grade.desc}</span>
               </div>
             `
           )
           .join("");
       }
 
+      // 页面加载后自动初始化
       window.onload = initializeChart;
     </script>
   </body>
