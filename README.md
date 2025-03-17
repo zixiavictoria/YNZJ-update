@@ -3,16 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <title>省级中药备案要求可视化看板</title>
-    <!-- 使用更稳定的 ECharts CDN -->
     <script src="https://cdn.staticfile.org/echarts/5.3.2/echarts.min.js"></script>
     <style>
       #china-map {
         width: 100%;
         height: 100vh;
-      }
-      body {
-        margin: 0;
-        position: relative;
       }
       #legend-panel {
         position: absolute;
@@ -26,29 +21,25 @@
     </style>
   </head>
   <body>
-    <!-- 地图容器 -->
     <div id="china-map"></div>
-    
-    <!-- 图例面板 -->
     <div id="legend-panel">
       <h3 style="margin:0 0 10px 0; color: #333;">备案要求档位说明</h3>
       <div id="legend-items"></div>
     </div>
 
     <script>
-      // ========== 地图初始化逻辑 ==========
       function initializeChart() {
+        // 示例数据（省份名称必须与 china.geo.json 中的 "name" 字段完全一致）
         const provinceData = {
-          // 示例数据（需替换为实际数据）
-          "北京市": { value: 90, grade: 1 },
-          "上海市": { value: 80, grade: 2 },
-          "广东省": { value: 70, grade: 3 }
+          "北京": { grade: 1 },    // 注意：此处为 "北京"，而非 "北京市"
+          "上海": { grade: 2 },
+          "广东": { grade: 3 }
         };
 
         const chart = echarts.init(document.getElementById("china-map"));
         
-        // 从本地加载地图JSON文件
-        fetch("data/100000_full.json")  // 本地路径
+        // 加载新仓库中的地图文件
+        fetch("https://raw.githubusercontent.com/natee/highcharts-china-geo/master/geojson/china.geo.json")
           .then((response) => response.json())
           .then((mapJson) => {
             echarts.registerMap("china", mapJson);
@@ -72,6 +63,7 @@
               series: [{
                 type: "map",
                 map: "china",
+                nameProperty: "name", // 对应 china.geo.json 中的字段
                 data: Object.entries(provinceData).map(([name, data]) => ({
                   name,
                   value: data.grade
@@ -84,11 +76,9 @@
             createLegend();
           });
 
-        // 窗口自适应
         window.addEventListener("resize", () => chart.resize());
       }
 
-      // ========== 图例生成函数 ==========
       function createLegend() {
         const legendItems = document.getElementById("legend-items");
         const grades = [
@@ -109,7 +99,6 @@
           .join("");
       }
 
-      // 页面加载完成后直接初始化
       window.onload = initializeChart;
     </script>
   </body>
